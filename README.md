@@ -49,3 +49,9 @@ python3 01_connect_sitl.py
 ## Rebuilding
 
 Only needed if you change the `Dockerfile` itself (new package, etc). Editing files in `examples/` never needs a rebuild.
+
+## Run only SITL (no Gazebo)
+
+```
+sim_vehicle.py -v ArduCopter  --out udp:127.0.0.1:14550 --map --console --no-rebuild
+```

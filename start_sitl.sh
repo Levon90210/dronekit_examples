@@ -5,7 +5,7 @@ set -e
 # add MAVProxy's map window; otherwise stay headless (server-only, no map)
 if [ -n "$DISPLAY" ]; then
     GZ_FLAGS="-r -v1"
-    MAVPROXY_EXTRA="--daemon --map"
+    MAVPROXY_EXTRA="--daemon --map --console"
 else
     GZ_FLAGS="-s -r -v1"
     MAVPROXY_EXTRA="--daemon"
@@ -21,5 +21,5 @@ trap 'kill $GZ_PID 2>/dev/null' EXIT
 cd /home/ardupilot/ardupilot/ArduCopter
 sim_vehicle.py -v ArduCopter -f gazebo-iris --model JSON \
     --add-param-file=/home/ardupilot/ardupilot/Tools/autotest/default_params/gazebo-iris.parm \
-    --out udp:127.0.0.1:14450 --out udp:127.0.0.1:14550 \
+    --out udp:127.0.0.1:14550 \
     --no-rebuild -w --mavproxy-args="$MAVPROXY_EXTRA"
