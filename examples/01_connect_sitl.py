@@ -1,15 +1,21 @@
 from dronekit import connect
 
-connection_string = '127.0.0.1:14550'
+CONNECTION_STRING = "127.0.0.1:14550"
+REQUIRED_ATTRIBUTES = ["gps_0", "armed", "mode", "attitude"]
 
-vehicle = connect(connection_string, wait_ready=True)
+vehicle = connect(
+    ip=CONNECTION_STRING,
+    wait_ready=REQUIRED_ATTRIBUTES,
+)
 
-print("Autopilot firmware version: %s" % vehicle.version)
-print("GPS: %s" % vehicle.gps_0)
-print("Battery: %s" % vehicle.battery)
-print("Last heartbeat: %s" % vehicle.last_heartbeat)
-print("Armable?: %s" % vehicle.is_armable)
-print("System status: %s" % vehicle.system_status.state)
-print("Mode: %s" % vehicle.mode.name)
+try:
+    print(f"Autopilot firmware version: {vehicle.version}")
+    print(f"GPS: {vehicle.gps_0}")
+    print(f"Battery: {vehicle.battery}")
+    print(f"Last heartbeat: {vehicle.last_heartbeat}")
+    print(f"Armable?: {vehicle.is_armable}")
+    print(f"System status: {vehicle.system_status.state}")
+    print(f"Mode: {vehicle.mode.name}")
 
-vehicle.close()
+finally:
+    vehicle.close()
