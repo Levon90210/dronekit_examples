@@ -16,15 +16,15 @@ class GroundControlStation:
         self._connecting = False
         self._connection_results: queue.Queue[tuple[bool, Any]] = queue.Queue()
 
-        self._connection_frame = tk.LabelFrame(
-            self._root,
-            text="Connection",
-            bg=SECTION_BG,
-            fg=MAIN_TEXT_COLOR,
-            bd=0,
-            padx=10,
-            pady=10,
-        )
+        self._create_connection_section()
+        self._create_flight_mode_section()
+        self._create_vehicle_section()
+
+    def run(self) -> None:
+        self._root.mainloop()
+
+    def _create_connection_section(self) -> None:
+        self._connection_frame = self._create_section_frame(title="Connection")
         self._connection_label = tk.Label(
             self._connection_frame,
             text="Disconnected",
@@ -52,90 +52,45 @@ class GroundControlStation:
             self._connection_frame,
             text="Connect",
             command=self._connect_vehicle,
-            bg=PRIMARY_BG,
-            fg=MAIN_TEXT_COLOR,
-            activebackground=PRIMARY_ACTIVE_BG,
-            activeforeground=MAIN_TEXT_COLOR,
-            disabledforeground=SECONDARY_TEXT_COLOR,
-            relief=tk.FLAT,
-            bd=0,
-            padx=12,
-            pady=7,
+            **BUTTON_DEFAULTS,
+            **PRIMARY_BUTTON_STYLE,
         )
         self._close_connection_btn = tk.Button(
             self._connection_frame,
             text="Close Connection",
             command=self._close_connection,
             state=tk.DISABLED,
-            bg=SECONDARY_BG,
-            fg=MAIN_TEXT_COLOR,
-            activebackground=SECONDARY_ACTIVE_BG,
-            activeforeground=MAIN_TEXT_COLOR,
-            disabledforeground=SECONDARY_TEXT_COLOR,
-            relief=tk.FLAT,
-            bd=0,
-            padx=12,
-            pady=7,
+            **BUTTON_DEFAULTS,
+            **SECONDARY_BUTTON_STYLE,
         )
         self._layout_connection_widgets()
 
-        self._flight_mode_frame = tk.LabelFrame(
-            self._root,
-            text="Flight modes",
-            bg=SECTION_BG,
-            fg=MAIN_TEXT_COLOR,
-            bd=0,
-            padx=10,
-            pady=10,
-        )
+    def _create_flight_mode_section(self) -> None:
+        self._flight_mode_frame = self._create_section_frame(title="Flight modes")
         self._mode_btn_map = {
             mode: tk.Button(
                 self._flight_mode_frame,
                 text=mode,
                 command=lambda mode=mode: self._set_mode(mode),
                 state=tk.DISABLED,
-                bg=SECONDARY_BG,
-                fg=MAIN_TEXT_COLOR,
-                activebackground=SECONDARY_ACTIVE_BG,
-                activeforeground=MAIN_TEXT_COLOR,
-                disabledforeground=SECONDARY_TEXT_COLOR,
-                relief=tk.FLAT,
-                bd=0,
-                padx=12,
-                pady=7,
+                **BUTTON_DEFAULTS,
+                **SECONDARY_BUTTON_STYLE,
             )
             for mode in MODE_LIST
         }
         self._layout_flight_mode_widgets()
 
-        self._vehicle_frame = tk.LabelFrame(
-            self._root,
-            text="Vehicle",
-            bg=SECTION_BG,
-            fg=MAIN_TEXT_COLOR,
-            bd=0,
-            padx=10,
-            pady=10,
-        )
+    def _create_vehicle_section(self) -> None:
+        self._vehicle_frame = self._create_section_frame(title="Vehicle")
         self._arm_btn = tk.Button(
             self._vehicle_frame,
             text="Arm",
             command=self._arm_vehicle,
             state=tk.DISABLED,
-            bg=ARM_BG,
-            fg=INPUT_BG,
-            activebackground=ARM_ACTIVE_BG,
-            activeforeground=INPUT_BG,
-            disabledforeground=INPUT_BG,
-            relief=tk.FLAT,
-            bd=0,
-            padx=12,
-            pady=7,
+            **BUTTON_DEFAULTS,
+            **ARM_BUTTON_STYLE,
         )
         self._layout_vehicle_widgets()
-
-    def run(self) -> None:
-        self._root.mainloop()
 
     def _connect_vehicle(self) -> None:
         connection_string = self._connection_entry.get().strip()
@@ -206,11 +161,22 @@ class GroundControlStation:
         self._arm_btn.config(state=state)
 
     def _initialize_root_window(self) -> None:
-        self._root.title("Ground Control Station")
+        self._root.title("Trust Me, It Flies")
         self._root.geometry(f"{ROOT_WINDOW_WIDTH}x{ROOT_WINDOW_HEIGHT}")
         self._root.protocol("WM_DELETE_WINDOW", self._on_window_close)
         self._root.configure(bg=WINDOW_BG)
         self._root.option_add("*Font", ("Arial", 11))
+
+    def _create_section_frame(self, title: str) -> tk.LabelFrame:
+        return tk.LabelFrame(
+            self._root,
+            text=title,
+            bg=SECTION_BG,
+            fg=MAIN_TEXT_COLOR,
+            bd=0,
+            padx=10,
+            pady=10,
+        )
 
     def _layout_connection_widgets(self) -> None:
         self._connection_frame.pack(fill="x", padx=15, pady=10)
