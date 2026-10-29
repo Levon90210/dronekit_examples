@@ -2,7 +2,6 @@ import tkinter as tk
 
 ROOT_WINDOW_WIDTH = 600
 ROOT_WINDOW_HEIGHT = 450
-REQUIRED_ATTRIBUTES = ["gps_0", "armed", "mode", "attitude"]
 MODE_LIST = ["GUIDED", "STABILIZE", "LOITER", "LAND", "RTL"]
 
 WINDOW_BG = "#111827"

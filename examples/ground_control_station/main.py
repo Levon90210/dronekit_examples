@@ -7,14 +7,49 @@ from dronekit import Vehicle, VehicleMode, connect
 from constants import *
 
 
+class VehicleController:
+    _REQUIRED_ATTRIBUTES = ["gps_0", "armed", "mode", "attitude"]
+
+    def __init__(self) -> None:
+        self._vehicle: Optional[Vehicle] = None
+
+    def connect(self, connection_string: str) -> None:
+        if self._vehicle is not None:
+            raise RuntimeError("Vehicle is already connected")
+
+        self._vehicle = connect(connection_string, wait_ready=self._REQUIRED_ATTRIBUTES)
+
+    def disconnect(self) -> None:
+        if self._vehicle is not None:
+            self._vehicle.close()
+            self._vehicle = None
+
+    def set_mode(self, mode_name: str) -> None:
+        if self._vehicle is None:
+            raise RuntimeError("Vehicle is not connected")
+
+        self._vehicle.mode = VehicleMode(name=mode_name)
+
+    def arm(self) -> None:
+        if self._vehicle is None:
+            raise RuntimeError("Vehicle is not connected")
+
+        if not self._vehicle.is_armable:
+            raise RuntimeError("Vehicle is not armable")
+
+        self._vehicle.armed = True
+
+
 class GroundControlStation:
     def __init__(self) -> None:
         self._root = tk.Tk()
         self._initialize_root_window()
 
-        self._vehicle: Optional[Vehicle] = None
+        self._controller = VehicleController()
         self._connecting = False
-        self._connection_results: queue.Queue[tuple[bool, Any]] = queue.Queue()
+        self._connection_results: queue.Queue[tuple[bool, Optional[Exception]]] = (
+            queue.Queue()
+        )
 
         self._create_connection_section()
         self._create_flight_mode_section()
@@ -106,48 +141,49 @@ class GroundControlStation:
         ).start()
         self._root.after(100, self._check_connection_result)
 
-    def _close_connection(self) -> None:
-        if self._vehicle is not None:
-            self._vehicle.close()
-            self._vehicle = None
-
-        self._connection_label.config(text="Disconnected")
-        self._set_connection_controls(connected=False)
+    def _close_connection(self) -> bool:
+        try:
+            self._controller.disconnect()
+            self._connection_label.config(text="Disconnected")
+            self._set_connection_controls(connected=False)
+            return True
+        except Exception as error:
+            print(error)
+            return False
 
     def _set_mode(self, mode_name: str) -> None:
-        if self._vehicle is not None:
-            self._vehicle.mode = VehicleMode(name=mode_name)
+        try:
+            self._controller.set_mode(mode_name)
+        except Exception as error:
+            print(error)
 
     def _arm_vehicle(self) -> None:
-        if self._vehicle is not None:
-            if self._vehicle.is_armable:
-                self._vehicle.armed = True
-
-            else:
-                print("Vehicle is not armable")
+        try:
+            self._controller.arm()
+        except Exception as error:
+            print(error)
 
     def _connection_worker(self, connection_string: str) -> None:
         try:
-            vehicle = connect(connection_string, wait_ready=REQUIRED_ATTRIBUTES)
-            self._connection_results.put((True, vehicle))
+            self._controller.connect(connection_string)
+            self._connection_results.put((True, None))
 
         except Exception as error:
             self._connection_results.put((False, error))
 
     def _check_connection_result(self) -> None:
         try:
-            success, vehicle_or_error = self._connection_results.get_nowait()
+            success, error = self._connection_results.get_nowait()
             self._connecting = False
 
             if success:
-                self._vehicle = vehicle_or_error
                 self._connection_label.config(text="Connected")
                 self._set_connection_controls(connected=True)
 
             else:
-                print(vehicle_or_error)
                 self._connection_label.config(text="Connection failed")
                 self._set_connection_controls(connected=False)
+                print(error)
 
         except queue.Empty:
             self._root.after(100, self._check_connection_result)
@@ -202,8 +238,8 @@ class GroundControlStation:
         if self._connecting:
             print("Wait for the connection attempt to finish")
         else:
-            self._close_connection()
-            self._root.destroy()
+            if self._close_connection():
+                self._root.destroy()
 
 
 def main() -> None:
