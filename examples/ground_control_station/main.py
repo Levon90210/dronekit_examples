@@ -2,42 +2,9 @@ import queue
 import threading
 import tkinter as tk
 from typing import Any, Optional
-from dronekit import Vehicle, VehicleMode, connect
 
+from vehicle_controller import VehicleController
 from constants import *
-
-
-class VehicleController:
-    _REQUIRED_ATTRIBUTES = ["gps_0", "armed", "mode", "attitude"]
-
-    def __init__(self) -> None:
-        self._vehicle: Optional[Vehicle] = None
-
-    def connect(self, connection_string: str) -> None:
-        if self._vehicle is not None:
-            raise RuntimeError("Vehicle is already connected")
-
-        self._vehicle = connect(connection_string, wait_ready=self._REQUIRED_ATTRIBUTES)
-
-    def disconnect(self) -> None:
-        if self._vehicle is not None:
-            self._vehicle.close()
-            self._vehicle = None
-
-    def set_mode(self, mode_name: str) -> None:
-        if self._vehicle is None:
-            raise RuntimeError("Vehicle is not connected")
-
-        self._vehicle.mode = VehicleMode(name=mode_name)
-
-    def arm(self) -> None:
-        if self._vehicle is None:
-            raise RuntimeError("Vehicle is not connected")
-
-        if not self._vehicle.is_armable:
-            raise RuntimeError("Vehicle is not armable")
-
-        self._vehicle.armed = True
 
 
 class GroundControlStation:
@@ -54,6 +21,8 @@ class GroundControlStation:
         self._create_connection_section()
         self._create_flight_mode_section()
         self._create_vehicle_section()
+
+        self._refresh_vehicle_state()
 
     def run(self) -> None:
         self._root.mainloop()
@@ -102,6 +71,12 @@ class GroundControlStation:
 
     def _create_flight_mode_section(self) -> None:
         self._flight_mode_frame = self._create_section_frame(title="Flight modes")
+        self._current_mode_label = tk.Label(
+            self._flight_mode_frame,
+            text="Current mode: -",
+            bg=SECTION_BG,
+            fg=MAIN_TEXT_COLOR,
+        )
         self._mode_btn_map = {
             mode: tk.Button(
                 self._flight_mode_frame,
@@ -126,6 +101,22 @@ class GroundControlStation:
             **ARM_BUTTON_STYLE,
         )
         self._layout_vehicle_widgets()
+
+    def _refresh_vehicle_state(self) -> None:
+        mode_name = self._controller.mode_name
+
+        if mode_name is None:
+            self._current_mode_label.config(text="Current mode: -")
+
+        else:
+            self._current_mode_label.config(text=f"Current mode: {mode_name}")
+
+        desired_state = tk.NORMAL if self._controller.can_arm else tk.DISABLED
+
+        if self._arm_btn.cget("state") != desired_state:
+            self._arm_btn.config(state=desired_state)
+
+        self._root.after(200, self._refresh_vehicle_state)
 
     def _connect_vehicle(self) -> None:
         connection_string = self._connection_entry.get().strip()
@@ -194,7 +185,6 @@ class GroundControlStation:
         self._close_connection_btn.config(state=state)
         for btn in self._mode_btn_map.values():
             btn.config(state=state)
-        self._arm_btn.config(state=state)
 
     def _initialize_root_window(self) -> None:
         self._root.title("Trust Me, It Flies")
@@ -225,9 +215,10 @@ class GroundControlStation:
 
     def _layout_flight_mode_widgets(self) -> None:
         self._flight_mode_frame.pack(fill="x", padx=15, pady=10)
+        self._current_mode_label.grid(row=0, columnspan=len(MODE_LIST), padx=5, pady=5)
         for i, btn in enumerate(self._mode_btn_map.values()):
             self._flight_mode_frame.columnconfigure(i, weight=1, uniform="modes")
-            btn.grid(row=0, column=i, padx=5, pady=5, sticky="ew")
+            btn.grid(row=1, column=i, padx=5, pady=5, sticky="ew")
 
     def _layout_vehicle_widgets(self) -> None:
         self._vehicle_frame.pack(fill="x", padx=15, pady=10)
