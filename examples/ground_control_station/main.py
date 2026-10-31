@@ -1,10 +1,11 @@
 import queue
 import threading
 import tkinter as tk
+from tkinter.scrolledtext import ScrolledText
 from typing import Any, Optional
 
-from vehicle_controller import VehicleController
 from constants import *
+from vehicle_controller import VehicleController
 
 
 class GroundControlStation:
@@ -21,6 +22,8 @@ class GroundControlStation:
         self._create_connection_section()
         self._create_flight_mode_section()
         self._create_vehicle_section()
+        self._create_logs_section()
+        self._append_log("GCS started")
 
         self._refresh_vehicle_state()
 
@@ -52,15 +55,16 @@ class GroundControlStation:
             highlightbackground=SECONDARY_TEXT_COLOR,
             highlightcolor=PRIMARY_BG,
         )
+        self._connection_buttons_frame = tk.Frame(self._connection_frame, bg=SECTION_BG)
         self._connect_btn = tk.Button(
-            self._connection_frame,
+            self._connection_buttons_frame,
             text="Connect",
             command=self._connect_vehicle,
             **BUTTON_DEFAULTS,
             **PRIMARY_BUTTON_STYLE,
         )
         self._close_connection_btn = tk.Button(
-            self._connection_frame,
+            self._connection_buttons_frame,
             text="Close Connection",
             command=self._close_connection,
             state=tk.DISABLED,
@@ -100,25 +104,27 @@ class GroundControlStation:
             **BUTTON_DEFAULTS,
             **{**ARM_BUTTON_STYLE, "bg": ARM_DISABLED_BG},
         )
+        self._takeoff_controls_frame = tk.Frame(self._vehicle_frame, bg=SECTION_BG)
         self._target_altitude_label = tk.Label(
-            self._vehicle_frame,
+            self._takeoff_controls_frame,
             text="Target altitude (m)",
             bg=SECTION_BG,
             fg=MAIN_TEXT_COLOR,
         )
         self._target_altitude_entry = tk.Entry(
-            self._vehicle_frame,
+            self._takeoff_controls_frame,
             bg=INPUT_BG,
             fg=MAIN_TEXT_COLOR,
             insertbackground=MAIN_TEXT_COLOR,
             relief=tk.FLAT,
             bd=0,
+            width=8,
             highlightthickness=1,
             highlightbackground=SECONDARY_TEXT_COLOR,
             highlightcolor=PRIMARY_BG,
         )
         self._takeoff_btn = tk.Button(
-            self._vehicle_frame,
+            self._takeoff_controls_frame,
             text="Takeoff",
             command=self._takeoff_vehicle,
             state=tk.DISABLED,
@@ -126,12 +132,16 @@ class GroundControlStation:
             **{**ARM_BUTTON_STYLE, "bg": ARM_DISABLED_BG},
         )
         self._current_altitude_label = tk.Label(
-            self._vehicle_frame,
-            text="Altitude: -",
-            bg=SECTION_BG,
-            fg=MAIN_TEXT_COLOR,
+            self._vehicle_frame, text="Altitude: -", bg=SECTION_BG, fg=MAIN_TEXT_COLOR
         )
         self._layout_vehicle_widgets()
+
+    def _create_logs_section(self) -> None:
+        self._logs_frame = self._create_section_frame(title="Logs")
+        self._logs_area = ScrolledText(
+            self._logs_frame, state=tk.DISABLED, **LOG_AREA_STYLE
+        )
+        self._layout_logs_widgets()
 
     def _refresh_vehicle_state(self) -> None:
         mode_name = self._controller.mode_name
@@ -165,6 +175,9 @@ class GroundControlStation:
         else:
             self._current_altitude_label.config(text=f"Altitude: {altitude:.1f} m")
 
+        for message in self._controller.drain_log_messages():
+            self._append_log(f"AUTOPILOT: {message}")
+
         self._root.after(200, self._refresh_vehicle_state)
 
     def _connect_vehicle(self) -> None:
@@ -174,6 +187,7 @@ class GroundControlStation:
 
         self._connection_label.config(text="Connecting...")
         self._connecting = True
+        self._append_log("Connecting...")
 
         self._connect_btn.config(state=tk.DISABLED)
         threading.Thread(
@@ -186,22 +200,26 @@ class GroundControlStation:
             self._controller.disconnect()
             self._connection_label.config(text="Disconnected")
             self._set_connection_controls(connected=False)
+            self._append_log("Disconnected")
             return True
+
         except Exception as error:
-            print(error)
+            self._append_log(f"ERROR: {error}")
             return False
 
     def _set_mode(self, mode_name: str) -> None:
         try:
+            self._append_log(f"Requested mode: {mode_name}")
             self._controller.set_mode(mode_name)
         except Exception as error:
-            print(error)
+            self._append_log(f"ERROR: {error}")
 
     def _arm_vehicle(self) -> None:
         try:
+            self._append_log("Arm requested")
             self._controller.arm()
         except Exception as error:
-            print(error)
+            self._append_log(f"ERROR: {error}")
 
     def _takeoff_vehicle(self) -> None:
         target_altitude = self._target_altitude_entry.get().strip()
@@ -209,9 +227,10 @@ class GroundControlStation:
             return
 
         try:
+            self._append_log(f"Takeoff requested: {target_altitude} m")
             self._controller.takeoff(float(target_altitude))
         except Exception as error:
-            print(error)
+            self._append_log(f"ERROR: {error}")
 
     def _connection_worker(self, connection_string: str) -> None:
         try:
@@ -229,11 +248,12 @@ class GroundControlStation:
             if success:
                 self._connection_label.config(text="Connected")
                 self._set_connection_controls(connected=True)
+                self._append_log("Connected")
 
             else:
                 self._connection_label.config(text="Connection failed")
                 self._set_connection_controls(connected=False)
-                print(error)
+                self._append_log(f"ERROR: {error}")
 
         except queue.Empty:
             self._root.after(100, self._check_connection_result)
@@ -244,6 +264,12 @@ class GroundControlStation:
         self._close_connection_btn.config(state=state)
         for btn in self._mode_btn_map.values():
             btn.config(state=state)
+
+    def _append_log(self, message: str) -> None:
+        self._logs_area.config(state=tk.NORMAL)
+        self._logs_area.insert("end", message + "\n")
+        self._logs_area.see("end")
+        self._logs_area.config(state=tk.DISABLED)
 
     def _initialize_root_window(self) -> None:
         self._root.title("Trust Me, It Flies")
@@ -266,14 +292,18 @@ class GroundControlStation:
     def _layout_connection_widgets(self) -> None:
         self._connection_frame.pack(fill="x", padx=15, pady=10)
         self._connection_frame.columnconfigure(1, weight=1)
+
         self._connection_label.grid(row=0, columnspan=2, padx=5, pady=5)
         self._connection_string_label.grid(row=1, column=0, padx=5, pady=5)
         self._connection_entry.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
-        self._connect_btn.grid(row=2, column=0, padx=5, pady=5)
-        self._close_connection_btn.grid(row=2, column=1, padx=5, pady=5)
+
+        self._connection_buttons_frame.grid(row=2, column=0, columnspan=2, pady=5)
+        self._connect_btn.grid(row=0, column=0, padx=5)
+        self._close_connection_btn.grid(row=0, column=1, padx=5)
 
     def _layout_flight_mode_widgets(self) -> None:
         self._flight_mode_frame.pack(fill="x", padx=15, pady=10)
+
         self._current_mode_label.grid(row=0, columnspan=len(MODE_LIST), padx=5, pady=5)
         for i, btn in enumerate(self._mode_btn_map.values()):
             self._flight_mode_frame.columnconfigure(i, weight=1, uniform="modes")
@@ -282,11 +312,19 @@ class GroundControlStation:
     def _layout_vehicle_widgets(self) -> None:
         self._vehicle_frame.pack(fill="x", padx=15, pady=10)
         self._vehicle_frame.columnconfigure(0, weight=1)
-        self._arm_btn.grid(row=0, columnspan=3, padx=5, pady=5)
-        self._target_altitude_label.grid(row=1, column=0, padx=5, pady=5)
-        self._target_altitude_entry.grid(row=1, column=1, padx=5, pady=5)
-        self._takeoff_btn.grid(row=1, column=2, padx=5, pady=5)
-        self._current_altitude_label.grid(row=2, columnspan=3, padx=5, pady=5)
+
+        self._arm_btn.grid(row=0, column=0, padx=5, pady=5)
+
+        self._takeoff_controls_frame.grid(row=1, column=0, pady=5)
+        self._target_altitude_label.grid(row=0, column=0, padx=5)
+        self._target_altitude_entry.grid(row=0, column=1, padx=5)
+        self._takeoff_btn.grid(row=0, column=2, padx=5)
+
+        self._current_altitude_label.grid(row=2, column=0, pady=5)
+
+    def _layout_logs_widgets(self) -> None:
+        self._logs_frame.pack(fill="both", expand=True, padx=15, pady=10)
+        self._logs_area.pack(fill="both", expand=True)
 
     def _on_window_close(self) -> None:
         if self._connecting:

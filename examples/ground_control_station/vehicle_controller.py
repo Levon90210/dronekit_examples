@@ -1,5 +1,6 @@
 import math
-from typing import Optional
+import queue
+from typing import Any, Optional
 
 from dronekit import Vehicle, VehicleMode, connect
 
@@ -9,6 +10,7 @@ class VehicleController:
 
     def __init__(self) -> None:
         self._vehicle: Optional[Vehicle] = None
+        self._log_messages: queue.Queue[str] = queue.Queue()
 
     @property
     def mode_name(self) -> Optional[str]:
@@ -54,9 +56,11 @@ class VehicleController:
             raise RuntimeError("Vehicle is already connected")
 
         self._vehicle = connect(connection_string, wait_ready=self._REQUIRED_ATTRIBUTES)
+        self._vehicle.add_message_listener("STATUSTEXT", self._on_status_text)
 
     def disconnect(self) -> None:
         if self._vehicle is not None:
+            self._vehicle.remove_message_listener("STATUSTEXT", self._on_status_text)
             self._vehicle.close()
             self._vehicle = None
 
@@ -90,3 +94,13 @@ class VehicleController:
 
         self._vehicle.simple_takeoff(target_altitude)
 
+    def drain_log_messages(self) -> list[str]:
+        messages: list[str] = []
+        while True:
+            try:
+                messages.append(self._log_messages.get_nowait())
+            except queue.Empty:
+                return messages
+     
+    def _on_status_text(self, vehicle: Vehicle, name: str, message: Any) -> None:
+        self._log_messages.put(message.text)
