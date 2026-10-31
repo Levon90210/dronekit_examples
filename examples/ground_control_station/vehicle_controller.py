@@ -1,3 +1,4 @@
+import math
 from typing import Optional
 
 from dronekit import Vehicle, VehicleMode, connect
@@ -41,6 +42,13 @@ class VehicleController:
             and not self.armed
         )
 
+    @property
+    def relative_altitude(self) -> Optional[float]:
+        if self._vehicle is None:
+            return None
+        
+        return self._vehicle.location.global_relative_frame.alt
+
     def connect(self, connection_string: str) -> None:
         if self._vehicle is not None:
             raise RuntimeError("Vehicle is already connected")
@@ -66,3 +74,19 @@ class VehicleController:
             raise RuntimeError("Vehicle cannot be armed")
 
         self._vehicle.armed = True
+
+    def takeoff(self, target_altitude: float) -> None:
+        if self._vehicle is None:
+            raise RuntimeError("Vehicle is not connected")
+
+        if not math.isfinite(target_altitude) or target_altitude <= 0:
+            raise RuntimeError(f"Invalid target altitude: {target_altitude}")
+        
+        if self.mode_name != "GUIDED":
+            raise RuntimeError("Takeoff is only available in GUIDED mode")
+
+        if not self.armed:
+            raise RuntimeError("Vehicle is not armed")
+
+        self._vehicle.simple_takeoff(target_altitude)
+

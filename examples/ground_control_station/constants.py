@@ -1,7 +1,7 @@
 import tkinter as tk
 
-ROOT_WINDOW_WIDTH = 600
-ROOT_WINDOW_HEIGHT = 450
+ROOT_WINDOW_WIDTH = 700
+ROOT_WINDOW_HEIGHT = 500
 MODE_LIST = ["GUIDED", "STABILIZE", "LOITER", "LAND", "RTL"]
 
 WINDOW_BG = "#111827"
@@ -19,6 +19,7 @@ SECONDARY_ACTIVE_BG = "#374151"
 
 ARM_BG = "#F59E0B"
 ARM_ACTIVE_BG = "#D97706"
+ARM_DISABLED_BG = "#374151"
 
 BUTTON_DEFAULTS = {
     "relief": tk.FLAT,
@@ -48,5 +49,5 @@ ARM_BUTTON_STYLE = {
     "fg": INPUT_BG,
     "activebackground": ARM_ACTIVE_BG,
     "activeforeground": INPUT_BG,
-    "disabledforeground": INPUT_BG,
+    "disabledforeground": SECONDARY_TEXT_COLOR,
 }

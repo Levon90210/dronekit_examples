@@ -98,7 +98,38 @@ class GroundControlStation:
             command=self._arm_vehicle,
             state=tk.DISABLED,
             **BUTTON_DEFAULTS,
-            **ARM_BUTTON_STYLE,
+            **{**ARM_BUTTON_STYLE, "bg": ARM_DISABLED_BG},
+        )
+        self._target_altitude_label = tk.Label(
+            self._vehicle_frame,
+            text="Target altitude (m)",
+            bg=SECTION_BG,
+            fg=MAIN_TEXT_COLOR,
+        )
+        self._target_altitude_entry = tk.Entry(
+            self._vehicle_frame,
+            bg=INPUT_BG,
+            fg=MAIN_TEXT_COLOR,
+            insertbackground=MAIN_TEXT_COLOR,
+            relief=tk.FLAT,
+            bd=0,
+            highlightthickness=1,
+            highlightbackground=SECONDARY_TEXT_COLOR,
+            highlightcolor=PRIMARY_BG,
+        )
+        self._takeoff_btn = tk.Button(
+            self._vehicle_frame,
+            text="Takeoff",
+            command=self._takeoff_vehicle,
+            state=tk.DISABLED,
+            **BUTTON_DEFAULTS,
+            **{**ARM_BUTTON_STYLE, "bg": ARM_DISABLED_BG},
+        )
+        self._current_altitude_label = tk.Label(
+            self._vehicle_frame,
+            text="Altitude: -",
+            bg=SECTION_BG,
+            fg=MAIN_TEXT_COLOR,
         )
         self._layout_vehicle_widgets()
 
@@ -111,10 +142,28 @@ class GroundControlStation:
         else:
             self._current_mode_label.config(text=f"Current mode: {mode_name}")
 
-        desired_state = tk.NORMAL if self._controller.can_arm else tk.DISABLED
+        can_arm = self._controller.can_arm
+        desired_arm_state = tk.NORMAL if can_arm else tk.DISABLED
+        if self._arm_btn.cget("state") != desired_arm_state:
+            self._arm_btn.config(
+                state=desired_arm_state,
+                bg=ARM_BG if can_arm else ARM_DISABLED_BG,
+            )
 
-        if self._arm_btn.cget("state") != desired_state:
-            self._arm_btn.config(state=desired_state)
+        can_takeoff = mode_name == "GUIDED" and self._controller.armed
+        desired_takeoff_state = tk.NORMAL if can_takeoff else tk.DISABLED
+        if self._takeoff_btn.cget("state") != desired_takeoff_state:
+            self._takeoff_btn.config(
+                state=desired_takeoff_state,
+                bg=ARM_BG if can_takeoff else ARM_DISABLED_BG,
+            )
+
+        altitude = self._controller.relative_altitude
+        if altitude is None:
+            self._current_altitude_label.config(text="Altitude: -")
+
+        else:
+            self._current_altitude_label.config(text=f"Altitude: {altitude:.1f} m")
 
         self._root.after(200, self._refresh_vehicle_state)
 
@@ -151,6 +200,16 @@ class GroundControlStation:
     def _arm_vehicle(self) -> None:
         try:
             self._controller.arm()
+        except Exception as error:
+            print(error)
+
+    def _takeoff_vehicle(self) -> None:
+        target_altitude = self._target_altitude_entry.get().strip()
+        if not target_altitude:
+            return
+
+        try:
+            self._controller.takeoff(float(target_altitude))
         except Exception as error:
             print(error)
 
@@ -223,7 +282,11 @@ class GroundControlStation:
     def _layout_vehicle_widgets(self) -> None:
         self._vehicle_frame.pack(fill="x", padx=15, pady=10)
         self._vehicle_frame.columnconfigure(0, weight=1)
-        self._arm_btn.grid(row=0, column=0, padx=5, pady=5)
+        self._arm_btn.grid(row=0, columnspan=3, padx=5, pady=5)
+        self._target_altitude_label.grid(row=1, column=0, padx=5, pady=5)
+        self._target_altitude_entry.grid(row=1, column=1, padx=5, pady=5)
+        self._takeoff_btn.grid(row=1, column=2, padx=5, pady=5)
+        self._current_altitude_label.grid(row=2, columnspan=3, padx=5, pady=5)
 
     def _on_window_close(self) -> None:
         if self._connecting:
