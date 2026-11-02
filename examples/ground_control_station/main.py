@@ -4,8 +4,9 @@ import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
 from typing import Any, Optional
 
-from constants import *
+import config
 from rc_channel_indicator import RCChannelIndicator
+import theme
 from vehicle_controller import VehicleController
 
 
@@ -22,8 +23,8 @@ class GroundControlStation:
         self._pressed_keys: set[str] = set()
         self._previous_mode_name: Optional[str] = None
 
-        self._main_panel = tk.Frame(self._root, bg=WINDOW_BG)
-        self._rc_panel = tk.Frame(self._root, bg=WINDOW_BG)
+        self._main_panel = tk.Frame(self._root, bg=theme.WINDOW_BG)
+        self._rc_panel = tk.Frame(self._root, bg=theme.WINDOW_BG)
         self._main_panel.grid(row=0, column=0, sticky="nsew")
         self._rc_panel.grid(row=0, column=1, sticky="nsew")
         self._root.rowconfigure(0, weight=1)
@@ -54,42 +55,44 @@ class GroundControlStation:
         self._connection_label = tk.Label(
             self._connection_frame,
             text="Disconnected",
-            bg=SECTION_BG,
-            fg=SECONDARY_TEXT_COLOR,
+            bg=theme.SECTION_BG,
+            fg=theme.SECONDARY_TEXT_COLOR,
         )
         self._connection_string_label = tk.Label(
             self._connection_frame,
             text="Connection string",
-            bg=SECTION_BG,
-            fg=MAIN_TEXT_COLOR,
+            bg=theme.SECTION_BG,
+            fg=theme.MAIN_TEXT_COLOR,
         )
         self._connection_entry = tk.Entry(
             self._connection_frame,
-            bg=INPUT_BG,
-            fg=MAIN_TEXT_COLOR,
-            insertbackground=MAIN_TEXT_COLOR,
+            bg=theme.INPUT_BG,
+            fg=theme.MAIN_TEXT_COLOR,
+            insertbackground=theme.MAIN_TEXT_COLOR,
             relief=tk.FLAT,
             bd=0,
             highlightthickness=1,
-            highlightbackground=SECONDARY_TEXT_COLOR,
-            highlightcolor=PRIMARY_BG,
+            highlightbackground=theme.SECONDARY_TEXT_COLOR,
+            highlightcolor=theme.PRIMARY_BG,
         )
-        self._connection_entry.insert(0, "127.0.0.1:14550")
-        self._connection_buttons_frame = tk.Frame(self._connection_frame, bg=SECTION_BG)
+        self._connection_entry.insert(0, config.DEFAULT_CONNECTION_STRING)
+        self._connection_buttons_frame = tk.Frame(
+            self._connection_frame, bg=theme.SECTION_BG
+        )
         self._connect_btn = tk.Button(
             self._connection_buttons_frame,
             text="Connect",
             command=self._connect_vehicle,
-            **BUTTON_DEFAULTS,
-            **PRIMARY_BUTTON_STYLE,
+            **theme.BUTTON_DEFAULTS,
+            **theme.PRIMARY_BUTTON_STYLE,
         )
         self._close_connection_btn = tk.Button(
             self._connection_buttons_frame,
             text="Close Connection",
             command=self._close_connection,
             state=tk.DISABLED,
-            **BUTTON_DEFAULTS,
-            **SECONDARY_BUTTON_STYLE,
+            **theme.BUTTON_DEFAULTS,
+            **theme.SECONDARY_BUTTON_STYLE,
         )
         self._layout_connection_widgets()
 
@@ -100,8 +103,8 @@ class GroundControlStation:
         self._current_mode_label = tk.Label(
             self._flight_mode_frame,
             text="Current mode: -",
-            bg=SECTION_BG,
-            fg=MAIN_TEXT_COLOR,
+            bg=theme.SECTION_BG,
+            fg=theme.MAIN_TEXT_COLOR,
         )
         self._mode_btn_map = {
             mode: tk.Button(
@@ -109,10 +112,10 @@ class GroundControlStation:
                 text=mode,
                 command=lambda mode=mode: self._set_mode(mode),
                 state=tk.DISABLED,
-                **BUTTON_DEFAULTS,
-                **SECONDARY_BUTTON_STYLE,
+                **theme.BUTTON_DEFAULTS,
+                **theme.SECONDARY_BUTTON_STYLE,
             )
-            for mode in MODE_LIST
+            for mode in config.MODE_LIST
         }
         self._layout_flight_mode_widgets()
 
@@ -125,45 +128,50 @@ class GroundControlStation:
             text="Arm",
             command=self._arm_vehicle,
             state=tk.DISABLED,
-            **BUTTON_DEFAULTS,
-            **{**ARM_BUTTON_STYLE, "bg": ARM_DISABLED_BG},
+            **theme.BUTTON_DEFAULTS,
+            **{**theme.ARM_BUTTON_STYLE, "bg": theme.ARM_DISABLED_BG},
         )
-        self._takeoff_controls_frame = tk.Frame(self._vehicle_frame, bg=SECTION_BG)
+        self._takeoff_controls_frame = tk.Frame(
+            self._vehicle_frame, bg=theme.SECTION_BG
+        )
         self._target_altitude_label = tk.Label(
             self._takeoff_controls_frame,
             text="Target altitude (m)",
-            bg=SECTION_BG,
-            fg=MAIN_TEXT_COLOR,
+            bg=theme.SECTION_BG,
+            fg=theme.MAIN_TEXT_COLOR,
         )
         self._target_altitude_entry = tk.Entry(
             self._takeoff_controls_frame,
-            bg=INPUT_BG,
-            fg=MAIN_TEXT_COLOR,
-            insertbackground=MAIN_TEXT_COLOR,
+            bg=theme.INPUT_BG,
+            fg=theme.MAIN_TEXT_COLOR,
+            insertbackground=theme.MAIN_TEXT_COLOR,
             relief=tk.FLAT,
             bd=0,
             width=8,
             highlightthickness=1,
-            highlightbackground=SECONDARY_TEXT_COLOR,
-            highlightcolor=PRIMARY_BG,
+            highlightbackground=theme.SECONDARY_TEXT_COLOR,
+            highlightcolor=theme.PRIMARY_BG,
         )
         self._takeoff_btn = tk.Button(
             self._takeoff_controls_frame,
             text="Takeoff",
             command=self._takeoff_vehicle,
             state=tk.DISABLED,
-            **BUTTON_DEFAULTS,
-            **{**ARM_BUTTON_STYLE, "bg": ARM_DISABLED_BG},
+            **theme.BUTTON_DEFAULTS,
+            **{**theme.ARM_BUTTON_STYLE, "bg": theme.ARM_DISABLED_BG},
         )
         self._current_altitude_label = tk.Label(
-            self._vehicle_frame, text="Altitude: -", bg=SECTION_BG, fg=MAIN_TEXT_COLOR
+            self._vehicle_frame,
+            text="Altitude: -",
+            bg=theme.SECTION_BG,
+            fg=theme.MAIN_TEXT_COLOR,
         )
         self._layout_vehicle_widgets()
 
     def _create_logs_section(self) -> None:
         self._logs_frame = self._create_section_frame(self._main_panel, title="Logs")
         self._logs_area = ScrolledText(
-            self._logs_frame, state=tk.DISABLED, **LOG_AREA_STYLE
+            self._logs_frame, state=tk.DISABLED, **theme.LOG_AREA_STYLE
         )
         self._layout_logs_widgets()
 
@@ -172,34 +180,42 @@ class GroundControlStation:
             self._rc_panel, title="RC Controls"
         )
         self._rc_values: dict[str, tk.IntVar] = {
-            "roll": tk.IntVar(master=self._root, value=RC_CENTER),
-            "pitch": tk.IntVar(master=self._root, value=RC_CENTER),
-            "throttle": tk.IntVar(master=self._root, value=RC_MIN),
-            "yaw": tk.IntVar(master=self._root, value=RC_CENTER),
+            "roll": tk.IntVar(master=self._root, value=config.RC_CENTER),
+            "pitch": tk.IntVar(master=self._root, value=config.RC_CENTER),
+            "throttle": tk.IntVar(master=self._root, value=config.RC_MIN),
+            "yaw": tk.IntVar(master=self._root, value=config.RC_CENTER),
         }
         self._roll_indicator = RCChannelIndicator(
             self._rc_controls_frame,
             name="Roll",
             variable=self._rc_values["roll"],
             orient=tk.HORIZONTAL,
+            minimum=config.RC_MIN,
+            maximum=config.RC_MAX
         )
         self._pitch_indicator = RCChannelIndicator(
             self._rc_controls_frame,
             name="Pitch",
             variable=self._rc_values["pitch"],
             orient=tk.VERTICAL,
+            minimum=config.RC_MIN,
+            maximum=config.RC_MAX
         )
         self._throttle_indicator = RCChannelIndicator(
             self._rc_controls_frame,
             name="Throttle",
             variable=self._rc_values["throttle"],
             orient=tk.VERTICAL,
+            minimum=config.RC_MIN,
+            maximum=config.RC_MAX
         )
         self._yaw_indicator = RCChannelIndicator(
             self._rc_controls_frame,
             name="Yaw",
             variable=self._rc_values["yaw"],
             orient=tk.HORIZONTAL,
+            minimum=config.RC_MIN,
+            maximum=config.RC_MAX
         )
         for widget in (
             self._rc_controls_frame,
@@ -216,17 +232,17 @@ class GroundControlStation:
             text="Enable keyboard control",
             variable=self._keyboard_enabled,
             command=self._on_keyboard_control_changed,
-            bg=SECTION_BG,
-            fg=MAIN_TEXT_COLOR,
-            selectcolor=INPUT_BG,
-            activebackground=SECTION_BG,
-            activeforeground=MAIN_TEXT_COLOR,
+            bg=theme.SECTION_BG,
+            fg=theme.MAIN_TEXT_COLOR,
+            selectcolor=theme.INPUT_BG,
+            activebackground=theme.SECTION_BG,
+            activeforeground=theme.MAIN_TEXT_COLOR,
         )
         self._keyboard_control_status_label = tk.Label(
             self._rc_controls_frame,
             text="Keyboard control: OFF",
-            bg=SECTION_BG,
-            fg=MAIN_TEXT_COLOR,
+            bg=theme.SECTION_BG,
+            fg=theme.MAIN_TEXT_COLOR,
         )
         self._layout_rc_controls_widgets()
 
@@ -254,7 +270,7 @@ class GroundControlStation:
         if self._arm_btn.cget("state") != desired_arm_state:
             self._arm_btn.config(
                 state=desired_arm_state,
-                bg=ARM_BG if can_arm else ARM_DISABLED_BG,
+                bg=theme.ARM_BG if can_arm else theme.ARM_DISABLED_BG,
             )
 
         can_takeoff = mode_name == "GUIDED" and self._controller.armed
@@ -263,7 +279,7 @@ class GroundControlStation:
         if self._takeoff_btn.cget("state") != desired_takeoff_state:
             self._takeoff_btn.config(
                 state=desired_takeoff_state,
-                bg=ARM_BG if can_takeoff else ARM_DISABLED_BG,
+                bg=theme.ARM_BG if can_takeoff else theme.ARM_DISABLED_BG,
             )
 
         desired_keyboard_control_state = tk.NORMAL if can_control_rc else tk.DISABLED
@@ -281,7 +297,7 @@ class GroundControlStation:
         for message in self._controller.drain_log_messages():
             self._append_log(f"AUTOPILOT: {message}")
 
-        self._root.after(200, self._refresh_vehicle_state)
+        self._root.after(config.VEHICLE_REFRESH_MS, self._refresh_vehicle_state)
 
     def _update_rc_inputs(self) -> None:
         roll_direction = int("right" in self._pressed_keys) - int(
@@ -290,11 +306,16 @@ class GroundControlStation:
         if roll_direction != 0:
             self._rc_values["roll"].set(
                 max(
-                    RC_MIN, min(RC_MAX, self._rc_values["roll"].get() + 25 * roll_direction)
+                    config.RC_MIN,
+                    min(
+                        config.RC_MAX,
+                        self._rc_values["roll"].get()
+                        + config.RC_AXIS_STEP * roll_direction,
+                    ),
                 )
             )
         else:
-            self._rc_values["roll"].set(RC_CENTER)
+            self._rc_values["roll"].set(config.RC_CENTER)
 
         pitch_direction = int("down" in self._pressed_keys) - int(
             "up" in self._pressed_keys
@@ -302,28 +323,39 @@ class GroundControlStation:
         if pitch_direction:
             self._rc_values["pitch"].set(
                 max(
-                    RC_MIN,
-                    min(RC_MAX, self._rc_values["pitch"].get() + 25 * pitch_direction),
+                    config.RC_MIN,
+                    min(
+                        config.RC_MAX,
+                        self._rc_values["pitch"].get()
+                        + config.RC_AXIS_STEP * pitch_direction,
+                    ),
                 )
             )
         else:
-            self._rc_values["pitch"].set(RC_CENTER)
+            self._rc_values["pitch"].set(config.RC_CENTER)
 
         yaw_direction = int("d" in self._pressed_keys) - int("a" in self._pressed_keys)
         if yaw_direction:
             self._rc_values["yaw"].set(
-                max(RC_MIN, min(RC_MAX, self._rc_values["yaw"].get() + 25 * yaw_direction))
+                max(
+                    config.RC_MIN,
+                    min(
+                        config.RC_MAX,
+                        self._rc_values["yaw"].get()
+                        + config.RC_AXIS_STEP * yaw_direction,
+                    ),
+                )
             )
         else:
-            self._rc_values["yaw"].set(RC_CENTER)
+            self._rc_values["yaw"].set(config.RC_CENTER)
 
         self._rc_values["throttle"].set(
             max(
-                RC_MIN,
+                config.RC_MIN,
                 min(
-                    RC_MAX,
+                    config.RC_MAX,
                     self._rc_values["throttle"].get()
-                    + 10
+                    + config.RC_THROTTLE_STEP
                     * (int("w" in self._pressed_keys) - int("s" in self._pressed_keys)),
                 ),
             )
@@ -341,7 +373,7 @@ class GroundControlStation:
                 self._keyboard_enabled.set(False)
                 self._on_keyboard_control_changed()
 
-        self._root.after(50, self._update_rc_inputs)
+        self._root.after(config.RC_UPDATE_MS, self._update_rc_inputs)
 
     def _connect_vehicle(self) -> None:
         connection_string = self._connection_entry.get().strip()
@@ -356,7 +388,7 @@ class GroundControlStation:
         threading.Thread(
             target=self._connection_worker, args=(connection_string,)
         ).start()
-        self._root.after(100, self._check_connection_result)
+        self._root.after(config.CONNECTION_POLL_MS, self._check_connection_result)
 
     def _close_connection(self) -> bool:
         try:
@@ -419,7 +451,7 @@ class GroundControlStation:
                 self._append_log(f"ERROR: {error}")
 
         except queue.Empty:
-            self._root.after(100, self._check_connection_result)
+            self._root.after(config.CONNECTION_POLL_MS, self._check_connection_result)
 
     def _set_connection_controls(self, *, connected: bool) -> None:
         self._connect_btn.config(state=tk.NORMAL if not connected else tk.DISABLED)
@@ -436,17 +468,17 @@ class GroundControlStation:
 
     def _initialize_root_window(self) -> None:
         self._root.title("Trust Me, It Flies")
-        self._root.geometry(f"{ROOT_WINDOW_WIDTH}x{ROOT_WINDOW_HEIGHT}")
+        self._root.geometry(f"{config.ROOT_WINDOW_WIDTH}x{config.ROOT_WINDOW_HEIGHT}")
         self._root.protocol("WM_DELETE_WINDOW", self._on_window_close)
-        self._root.configure(bg=WINDOW_BG)
+        self._root.configure(bg=theme.WINDOW_BG)
         self._root.option_add("*Font", ("Arial", 11))
 
     def _create_section_frame(self, parent: tk.Misc, title: str) -> tk.LabelFrame:
         return tk.LabelFrame(
             parent,
             text=title,
-            bg=SECTION_BG,
-            fg=MAIN_TEXT_COLOR,
+            bg=theme.SECTION_BG,
+            fg=theme.MAIN_TEXT_COLOR,
             bd=0,
             padx=10,
             pady=10,
@@ -467,7 +499,9 @@ class GroundControlStation:
     def _layout_flight_mode_widgets(self) -> None:
         self._flight_mode_frame.pack(fill="x", padx=15, pady=10)
 
-        self._current_mode_label.grid(row=0, columnspan=len(MODE_LIST), padx=5, pady=5)
+        self._current_mode_label.grid(
+            row=0, columnspan=len(config.MODE_LIST), padx=5, pady=5
+        )
         for i, btn in enumerate(self._mode_btn_map.values()):
             self._flight_mode_frame.columnconfigure(i, weight=1, uniform="modes")
             btn.grid(row=1, column=i, padx=5, pady=5, sticky="ew")
@@ -532,24 +566,22 @@ class GroundControlStation:
             mode_name = self._controller.mode_name
             if mode_name == "STABILIZE" and self._controller.armed:
                 self._keyboard_enabled.set(False)
-                self._append_log(
-                    "Enable keyboard control before arming in STABILIZE"
-                )
+                self._append_log("Enable keyboard control before arming in STABILIZE")
                 return
 
             if mode_name == "STABILIZE":
-                self._rc_values["throttle"].set(RC_MIN)
+                self._rc_values["throttle"].set(config.RC_MIN)
             elif mode_name == "LOITER":
                 self._rc_values["throttle"].set(
-                    RC_CENTER if self._controller.armed else RC_MIN
+                    config.RC_CENTER if self._controller.armed else config.RC_MIN
                 )
 
             self._keyboard_control_status_label.config(text="Keyboard control: ON")
             self._rc_controls_frame.focus_set()
 
-            self._rc_values["roll"].set(RC_CENTER)
-            self._rc_values["pitch"].set(RC_CENTER)
-            self._rc_values["yaw"].set(RC_CENTER)
+            self._rc_values["roll"].set(config.RC_CENTER)
+            self._rc_values["pitch"].set(config.RC_CENTER)
+            self._rc_values["yaw"].set(config.RC_CENTER)
 
         else:
             self._keyboard_control_status_label.config(text="Keyboard control: OFF")

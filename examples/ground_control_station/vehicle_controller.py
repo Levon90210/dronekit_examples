@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 from dronekit import Vehicle, VehicleMode, connect
 
-from constants import RC_MAX, RC_MIN
+import config
 
 
 class VehicleController:
@@ -116,8 +116,13 @@ class VehicleController:
         if not self.can_control_rc:
             raise RuntimeError("RC control requires STABILIZE or LOITER mode")
 
-        if not all(RC_MIN <= value <= RC_MAX for value in (roll, pitch, throttle, yaw)):
-            raise ValueError(f"RC inputs must be between {RC_MIN} and {RC_MAX}")
+        if not all(
+            config.RC_MIN <= value <= config.RC_MAX
+            for value in (roll, pitch, throttle, yaw)
+        ):
+            raise ValueError(
+                f"RC inputs must be between {config.RC_MIN} and {config.RC_MAX}"
+            )
 
         self._vehicle.channels.overrides = {
             "1": roll,

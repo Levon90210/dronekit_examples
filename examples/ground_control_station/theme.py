@@ -1,16 +1,12 @@
 import tkinter as tk
-
-ROOT_WINDOW_WIDTH = 1000
-ROOT_WINDOW_HEIGHT = 700
-MODE_LIST = ["GUIDED", "STABILIZE", "LOITER", "LAND", "RTL"]
-
-RC_MIN = 1100
-RC_CENTER = 1500
-RC_MAX = 1900
+from typing import Any
 
 WINDOW_BG = "#111827"
 SECTION_BG = "#1F2937"
 INPUT_BG = "#0F172A"
+
+INDICATOR_BG = "#6B7280"
+INDICATOR_FILL_BG = "#84CC16"
 
 MAIN_TEXT_COLOR = "#F9FAFB"
 SECONDARY_TEXT_COLOR = "#9CA3AF"
@@ -29,14 +25,14 @@ LOG_FONT = "monospace"
 LOG_FONT_SIZE = 10
 LOG_AREA_HEIGHT = 8
 
-BUTTON_DEFAULTS = {
+BUTTON_DEFAULTS: dict[str, Any] = {
     "relief": tk.FLAT,
     "bd": 0,
     "padx": 12,
     "pady": 7,
 }
 
-PRIMARY_BUTTON_STYLE = {
+PRIMARY_BUTTON_STYLE: dict[str, Any] = {
     "bg": PRIMARY_BG,
     "fg": MAIN_TEXT_COLOR,
     "activebackground": PRIMARY_ACTIVE_BG,
@@ -44,7 +40,7 @@ PRIMARY_BUTTON_STYLE = {
     "disabledforeground": SECONDARY_TEXT_COLOR,
 }
 
-SECONDARY_BUTTON_STYLE = {
+SECONDARY_BUTTON_STYLE: dict[str, Any] = {
     "bg": SECONDARY_BG,
     "fg": MAIN_TEXT_COLOR,
     "activebackground": SECONDARY_ACTIVE_BG,
@@ -52,7 +48,7 @@ SECONDARY_BUTTON_STYLE = {
     "disabledforeground": SECONDARY_TEXT_COLOR,
 }
 
-ARM_BUTTON_STYLE = {
+ARM_BUTTON_STYLE: dict[str, Any] = {
     "bg": ARM_BG,
     "fg": INPUT_BG,
     "activebackground": ARM_ACTIVE_BG,
@@ -60,11 +56,11 @@ ARM_BUTTON_STYLE = {
     "disabledforeground": SECONDARY_TEXT_COLOR,
 }
 
-LOG_AREA_STYLE = {
+LOG_AREA_STYLE: dict[str, Any] = {
     "bg": INPUT_BG,
     "fg": MAIN_TEXT_COLOR,
     "font": (LOG_FONT, LOG_FONT_SIZE),
-    "height": 8,
+    "height": LOG_AREA_HEIGHT,
     "width": 1,
     "relief": tk.FLAT,
     "bd": 0,
