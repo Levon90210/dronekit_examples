@@ -4,6 +4,8 @@ from typing import Any, Optional
 
 from dronekit import Vehicle, VehicleMode, connect
 
+from constants import RC_MAX, RC_MIN
+
 
 class VehicleController:
     _REQUIRED_ATTRIBUTES = ["gps_0", "armed", "mode", "attitude"]
@@ -48,8 +50,12 @@ class VehicleController:
     def relative_altitude(self) -> Optional[float]:
         if self._vehicle is None:
             return None
-        
+
         return self._vehicle.location.global_relative_frame.alt
+
+    @property
+    def can_control_rc(self) -> bool:
+        return self.mode_name in {"STABILIZE", "LOITER"}
 
     def connect(self, connection_string: str) -> None:
         if self._vehicle is not None:
@@ -85,7 +91,7 @@ class VehicleController:
 
         if not math.isfinite(target_altitude) or target_altitude <= 0:
             raise RuntimeError(f"Invalid target altitude: {target_altitude}")
-        
+
         if self.mode_name != "GUIDED":
             raise RuntimeError("Takeoff is only available in GUIDED mode")
 
@@ -101,6 +107,27 @@ class VehicleController:
                 messages.append(self._log_messages.get_nowait())
             except queue.Empty:
                 return messages
-     
+
+    def set_rc_inputs(self, *, roll: int, pitch: int, throttle: int, yaw: int) -> None:
+        if self._vehicle is None:
+            raise RuntimeError("Vehicle is not connected")
+
+        if not self.can_control_rc:
+            raise RuntimeError("RC control requires STABILIZE or LOITER mode")
+
+        if not all(RC_MIN <= value <= RC_MAX for value in (roll, pitch, throttle, yaw)):
+            raise ValueError(f"RC inputs must be between {RC_MIN} and {RC_MAX}")
+
+        self._vehicle.channels.overrides = {
+            "1": roll,
+            "2": pitch,
+            "3": throttle,
+            "4": yaw,
+        }
+
+    def release_rc_inputs(self) -> None:
+        if self._vehicle is not None:
+            self._vehicle.channels.overrides = {}
+
     def _on_status_text(self, vehicle: Vehicle, name: str, message: Any) -> None:
         self._log_messages.put(message.text)
