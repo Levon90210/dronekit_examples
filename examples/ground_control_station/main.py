@@ -5,6 +5,7 @@ from tkinter.scrolledtext import ScrolledText
 from typing import Any, Optional
 
 import config
+from keyboard_rc_input import KeyboardRCInput
 from rc_channel_indicator import RCChannelIndicator
 import theme
 from vehicle_controller import VehicleController
@@ -16,6 +17,8 @@ class GroundControlStation:
         self._initialize_root_window()
 
         self._controller = VehicleController()
+        self._keyboard_input = KeyboardRCInput()
+
         self._connecting = False
         self._connection_results: queue.Queue[tuple[bool, Optional[Exception]]] = (
             queue.Queue()
@@ -191,7 +194,7 @@ class GroundControlStation:
             variable=self._rc_values["roll"],
             orient=tk.HORIZONTAL,
             minimum=config.RC_MIN,
-            maximum=config.RC_MAX
+            maximum=config.RC_MAX,
         )
         self._pitch_indicator = RCChannelIndicator(
             self._rc_controls_frame,
@@ -199,7 +202,7 @@ class GroundControlStation:
             variable=self._rc_values["pitch"],
             orient=tk.VERTICAL,
             minimum=config.RC_MIN,
-            maximum=config.RC_MAX
+            maximum=config.RC_MAX,
         )
         self._throttle_indicator = RCChannelIndicator(
             self._rc_controls_frame,
@@ -207,7 +210,7 @@ class GroundControlStation:
             variable=self._rc_values["throttle"],
             orient=tk.VERTICAL,
             minimum=config.RC_MIN,
-            maximum=config.RC_MAX
+            maximum=config.RC_MAX,
         )
         self._yaw_indicator = RCChannelIndicator(
             self._rc_controls_frame,
@@ -215,7 +218,7 @@ class GroundControlStation:
             variable=self._rc_values["yaw"],
             orient=tk.HORIZONTAL,
             minimum=config.RC_MIN,
-            maximum=config.RC_MAX
+            maximum=config.RC_MAX,
         )
         for widget in (
             self._rc_controls_frame,
@@ -300,74 +303,16 @@ class GroundControlStation:
         self._root.after(config.VEHICLE_REFRESH_MS, self._refresh_vehicle_state)
 
     def _update_rc_inputs(self) -> None:
-        roll_direction = int("right" in self._pressed_keys) - int(
-            "left" in self._pressed_keys
-        )
-        if roll_direction != 0:
-            self._rc_values["roll"].set(
-                max(
-                    config.RC_MIN,
-                    min(
-                        config.RC_MAX,
-                        self._rc_values["roll"].get()
-                        + config.RC_AXIS_STEP * roll_direction,
-                    ),
-                )
-            )
-        else:
-            self._rc_values["roll"].set(config.RC_CENTER)
+        self._keyboard_input.update(pressed_keys=self._pressed_keys)
+        values = self._keyboard_input.values
 
-        pitch_direction = int("down" in self._pressed_keys) - int(
-            "up" in self._pressed_keys
-        )
-        if pitch_direction:
-            self._rc_values["pitch"].set(
-                max(
-                    config.RC_MIN,
-                    min(
-                        config.RC_MAX,
-                        self._rc_values["pitch"].get()
-                        + config.RC_AXIS_STEP * pitch_direction,
-                    ),
-                )
-            )
-        else:
-            self._rc_values["pitch"].set(config.RC_CENTER)
+        for channel, value in values.items():
+            self._rc_values[channel].set(value)
 
-        yaw_direction = int("d" in self._pressed_keys) - int("a" in self._pressed_keys)
-        if yaw_direction:
-            self._rc_values["yaw"].set(
-                max(
-                    config.RC_MIN,
-                    min(
-                        config.RC_MAX,
-                        self._rc_values["yaw"].get()
-                        + config.RC_AXIS_STEP * yaw_direction,
-                    ),
-                )
-            )
-        else:
-            self._rc_values["yaw"].set(config.RC_CENTER)
-
-        self._rc_values["throttle"].set(
-            max(
-                config.RC_MIN,
-                min(
-                    config.RC_MAX,
-                    self._rc_values["throttle"].get()
-                    + config.RC_THROTTLE_STEP
-                    * (int("w" in self._pressed_keys) - int("s" in self._pressed_keys)),
-                ),
-            )
-        )
         if self._keyboard_enabled.get():
             try:
-                self._controller.set_rc_inputs(
-                    roll=self._rc_values["roll"].get(),
-                    pitch=self._rc_values["pitch"].get(),
-                    throttle=self._rc_values["throttle"].get(),
-                    yaw=self._rc_values["yaw"].get(),
-                )
+                self._controller.set_rc_inputs(**values)
+
             except Exception as error:
                 self._append_log(f"ERROR: {error}")
                 self._keyboard_enabled.set(False)
@@ -569,19 +514,15 @@ class GroundControlStation:
                 self._append_log("Enable keyboard control before arming in STABILIZE")
                 return
 
-            if mode_name == "STABILIZE":
-                self._rc_values["throttle"].set(config.RC_MIN)
-            elif mode_name == "LOITER":
-                self._rc_values["throttle"].set(
-                    config.RC_CENTER if self._controller.armed else config.RC_MIN
-                )
-
             self._keyboard_control_status_label.config(text="Keyboard control: ON")
             self._rc_controls_frame.focus_set()
 
-            self._rc_values["roll"].set(config.RC_CENTER)
-            self._rc_values["pitch"].set(config.RC_CENTER)
-            self._rc_values["yaw"].set(config.RC_CENTER)
+            throttle = (
+                config.RC_CENTER
+                if mode_name == "LOITER" and self._controller.armed
+                else config.RC_MIN
+            )
+            self._keyboard_input.reset(throttle=throttle)
 
         else:
             self._keyboard_control_status_label.config(text="Keyboard control: OFF")
