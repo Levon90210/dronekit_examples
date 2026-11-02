@@ -266,15 +266,10 @@ class GroundControlStation:
                 bg=ARM_BG if can_takeoff else ARM_DISABLED_BG,
             )
 
-        can_control_rc = self._controller.can_control_rc
         desired_keyboard_control_state = tk.NORMAL if can_control_rc else tk.DISABLED
 
         if self._keyboard_control_btn.cget("state") != desired_keyboard_control_state:
             self._keyboard_control_btn.config(state=desired_keyboard_control_state)
-
-        if not can_control_rc and self._keyboard_enabled.get():
-            self._keyboard_enabled.set(False)
-            self._on_keyboard_control_changed()
 
         altitude = self._controller.relative_altitude
         if altitude is None:

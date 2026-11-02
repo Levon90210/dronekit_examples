@@ -67,6 +67,7 @@ class VehicleController:
     def disconnect(self) -> None:
         if self._vehicle is not None:
             self._vehicle.remove_message_listener("STATUSTEXT", self._on_status_text)
+            self.release_rc_inputs()
             self._vehicle.close()
             self._vehicle = None
 
