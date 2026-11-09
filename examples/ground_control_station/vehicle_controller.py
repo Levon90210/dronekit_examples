@@ -57,6 +57,31 @@ class VehicleController:
     def can_control_rc(self) -> bool:
         return self.mode_name in {"STABILIZE", "LOITER"}
 
+    @property
+    def position(self) -> Optional[tuple[float, float]]:
+        if self._vehicle is None:
+            return None
+
+        position = self._vehicle.location.global_relative_frame
+        if position.lon is None or position.lat is None:
+            return None
+        
+        return position.lat, position.lon
+
+    @property
+    def home_position(self) -> Optional[tuple[float, float]]:
+        if self._vehicle is None:
+            return None
+
+        home_position = self._vehicle.home_location
+        if home_position is None:
+            return None
+
+        if home_position.lon is None or home_position.lat is None:
+            return None
+
+        return home_position.lat, home_position.lon
+
     def connect(self, connection_string: str) -> None:
         if self._vehicle is not None:
             raise RuntimeError("Vehicle is already connected")

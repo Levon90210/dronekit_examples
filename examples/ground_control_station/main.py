@@ -8,6 +8,7 @@ from connection_panel import ConnectionPanel
 from flight_modes_panel import FlightModesPanel
 from keyboard_rc_input import KeyboardRCInput
 from logs_panel import LogsPanel
+from map_panel import MapPanel
 from rc_channel_indicator import RCChannelIndicator
 from rc_controls_panel import RCControlsPanel
 from vehicle_panel import VehiclePanel
@@ -31,12 +32,20 @@ class GroundControlStation:
         self._pressed_keys: set[str] = set()
         self._previous_mode_name: Optional[str] = None
 
-        self._main_panel = tk.Frame(self._root, bg=theme.WINDOW_BG)
-        self._main_panel.grid(row=0, column=0, sticky="nsew")
+        self._root.rowconfigure(0, weight=0)
+        self._root.rowconfigure(1, weight=1)
 
-        self._root.rowconfigure(0, weight=1)
-        self._root.columnconfigure(0, weight=2)
-        self._root.columnconfigure(1, weight=1)
+        self._root.columnconfigure(0, weight=1)
+        self._root.columnconfigure(1, weight=0)
+        self._root.columnconfigure(2, weight=0)
+
+        self._map_panel = MapPanel(self._root)
+        self._map_panel.grid(
+            row=0, column=0, rowspan=2, sticky="nsew", padx=10, pady=10
+        )
+
+        self._main_panel = tk.Frame(self._root, bg=theme.WINDOW_BG)
+        self._main_panel.grid(row=0, column=1, sticky="nsew")
 
         self._create_connection_section()
         self._create_flight_mode_section()
@@ -78,14 +87,16 @@ class GroundControlStation:
         self._vehicle_panel.pack(fill="x", padx=15, pady=10)
 
     def _create_logs_section(self) -> None:
-        self._logs_panel = LogsPanel(self._main_panel)
-        self._logs_panel.pack(fill="both", expand=True, padx=15, pady=10)
+        self._logs_panel = LogsPanel(self._root)
+        self._logs_panel.grid(
+            row=1, column=1, columnspan=2, sticky="nsew", padx=10, pady=10
+        )
 
     def _create_rc_controls_section(self) -> None:
         self._rc_controls_panel = RCControlsPanel(
             self._root, on_keyboard_toggle=self._on_keyboard_control_changed
         )
-        self._rc_controls_panel.grid(row=0, column=1, sticky="nsew", padx=15, pady=10)
+        self._rc_controls_panel.grid(row=0, column=2, sticky="nsew", padx=15, pady=10)
 
     def _refresh_vehicle_state(self) -> None:
         mode_name = self._controller.mode_name
@@ -110,6 +121,9 @@ class GroundControlStation:
 
         for message in self._controller.drain_log_messages():
             self._append_log(f"AUTOPILOT: {message}")
+
+        self._map_panel.set_position(self._controller.position)
+        self._map_panel.set_home_position(self._controller.home_position)
 
         self._root.after(config.VEHICLE_REFRESH_MS, self._refresh_vehicle_state)
 
@@ -224,6 +238,7 @@ class GroundControlStation:
     def _initialize_root_window(self) -> None:
         self._root.title("Trust Me, It Flies")
         self._root.geometry(f"{config.ROOT_WINDOW_WIDTH}x{config.ROOT_WINDOW_HEIGHT}")
+        self._root.attributes("-zoomed", True)
         self._root.protocol("WM_DELETE_WINDOW", self._on_window_close)
         self._root.configure(bg=theme.WINDOW_BG)
         self._root.option_add("*Font", ("Arial", 11))
