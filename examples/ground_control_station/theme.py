@@ -1,6 +1,9 @@
 import tkinter as tk
 from typing import Any
 
+WHITE = "#FFFFFF"
+BLACK = "#000000"
+
 WINDOW_BG = "#111827"
 SECTION_BG = "#1F2937"
 INPUT_BG = "#0F172A"

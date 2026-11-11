@@ -1,9 +1,12 @@
 import os
 import tkinter as tk
 from typing import Optional
+import webbrowser
 
 from tkintermapview import TkinterMapView
 from tkintermapview.map_widget import CanvasPositionMarker
+
+import theme
 
 
 class MapPanel(tk.Frame):
@@ -20,8 +23,38 @@ class MapPanel(tk.Frame):
         self._map_widget.set_position(40.18, 44.51)
         self._map_widget.set_zoom(17)
 
-        self._attribution_label = tk.Label(self, text="© OpenStreetMap contributors")
-        self._attribution_label.pack(anchor="e")
+        self._attribution_frame = tk.Frame(self._map_widget, bg=theme.WHITE)
+        self._attribution_frame.place(relx=1, rely=1, anchor="se", x=-8, y=-8)
+
+        self._maptiler_attribution_label = tk.Label(
+            self._attribution_frame,
+            text="© MapTiler",
+            bg=theme.WHITE,
+            fg=theme.BLACK,
+            cursor="hand2",
+        )
+        self._maptiler_attribution_label.pack(side="left", padx=4)
+        self._maptiler_attribution_label.bind(
+            "<Button-1>",
+            lambda event: self._on_label_click(
+                event, "https://www.maptiler.com/copyright/"
+            ),
+        )
+
+        self._osm_attribution_label = tk.Label(
+            self._attribution_frame,
+            text="© OpenStreetMap contributors",
+            bg=theme.WHITE,
+            fg=theme.BLACK,
+            cursor="hand2",
+        )
+        self._osm_attribution_label.pack(side="left", padx=4)
+        self._osm_attribution_label.bind(
+            "<Button-1>",
+            lambda event: self._on_label_click(
+                event, "https://www.openstreetmap.org/copyright"
+            ),
+        )
 
         self._drone_marker: Optional[CanvasPositionMarker] = None
         self._home_marker: Optional[CanvasPositionMarker] = None
@@ -89,3 +122,6 @@ class MapPanel(tk.Frame):
         ):
             latitude, longitude = self._last_position
             self._map_widget.set_position(latitude, longitude)
+
+    def _on_label_click(self, event: tk.Event, url: str) -> None:
+        webbrowser.open_new_tab(url)
